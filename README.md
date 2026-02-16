@@ -1,10 +1,13 @@
 # Calibrated Semi-Supervised Models for Disaster Response based on Training Dynamics
 
+> **Results Dashboard** — View experiment results: [results/dashboard.html](https://htmlpreview.github.io/?https://github.com/anhtranst/ust/blob/main/results/dashboard.html)
+> _(Open locally in a browser; rebuild anytime with `python results/build_dashboard.py`)_
+
 This repository contains the code and experiments for the paper:
 
 > **Calibrated Semi-Supervised Models for Disaster Response based on Training Dynamics**
 > Khushboo Gupta, Nikita Gautam, Tiberiu Sosea, Doina Caragea, and Cornelia Caragea
-> *Proceedings of the 22nd International ISCRAM Conference, Halifax, Canada, May 2025*
+> _Proceedings of the 22nd International ISCRAM Conference, Halifax, Canada, May 2025_
 > DOI: [10.59297/5xkjq067](https://doi.org/10.59297/5xkjq067)
 
 The project implements and evaluates semi-supervised learning (SSL) methods — including **Self-Training (ST)**, **Uncertainty-aware Self-Training (UST)**, and **AUM-ST** — for few-shot text classification of disaster-related tweets into humanitarian categories. A key focus is on **model calibration**: ensuring that predicted probabilities reflect actual correctness, which is critical for trustworthy decision-making in disaster response.
@@ -71,6 +74,7 @@ For each of `unsup_epochs` (default: 12) iterations:
 ### Phase 3: Evaluation
 
 The best checkpoint is evaluated on the held-out test set, reporting:
+
 - **Macro-F1:** Primary classification metric, averaged across all classes
 - **ECE (Expected Calibration Error):** Measures how well the model's predicted probabilities match actual correctness, using `n_bins=10`. Lower ECE means better-calibrated predictions — essential for trustworthy deployment in disaster response.
 
@@ -78,12 +82,12 @@ The best checkpoint is evaluated on the held-out test set, reporting:
 
 The `sample_scheme` parameter controls how pseudo-labeled instances are selected from the unlabeled pool:
 
-| Scheme | Description | Uncertainty? | Per-class? | Confidence weighting? |
-|--------|-------------|:---:|:---:|:---:|
-| `uniform` | Random selection (standard ST baseline) | No | No | No |
-| `easy_bald` | Prefer low-BALD (easy) examples | Yes | No | No |
-| `easy_bald_class_conf` | Per-class easy BALD with confidence loss | Yes | Yes | Yes |
-| `bald_difficulty` | Prefer high-BALD (difficult) examples | Yes | No | No |
+| Scheme                 | Description                              | Uncertainty? | Per-class? | Confidence weighting? |
+| ---------------------- | ---------------------------------------- | :----------: | :--------: | :-------------------: |
+| `uniform`              | Random selection (standard ST baseline)  |      No      |     No     |          No           |
+| `easy_bald`            | Prefer low-BALD (easy) examples          |     Yes      |     No     |          No           |
+| `easy_bald_class_conf` | Per-class easy BALD with confidence loss |     Yes      |    Yes     |          Yes          |
+| `bald_difficulty`      | Prefer high-BALD (difficult) examples    |     Yes      |     No     |          No           |
 
 ### BALD (Bayesian Active Learning by Disagreement)
 
@@ -106,35 +110,35 @@ This project uses a subset of the [**HumAID** (Human-Annotated Disaster Incident
 
 We use **10 of the 19 events** from HumAID:
 
-| Disaster Event | Year | Type | Classes |
-|---|:---:|---|:---:|
-| California Wildfires | 2018 | Wildfire | 10 |
-| Cyclone Idai | 2019 | Cyclone | 10 |
-| Canada Wildfires | 2016 | Wildfire | 8 |
-| Hurricane Dorian | 2019 | Hurricane | 9 |
-| Hurricane Florence | 2018 | Hurricane | 9 |
-| Hurricane Harvey | 2017 | Hurricane | 9 |
-| Hurricane Irma | 2017 | Hurricane | 9 |
-| Hurricane Maria | 2017 | Hurricane | 9 |
-| Kaikoura Earthquake | 2016 | Earthquake | 9 |
-| Kerala Floods | 2018 | Flood | 9 |
+| Disaster Event       | Year | Type       | Classes |
+| -------------------- | :--: | ---------- | :-----: |
+| California Wildfires | 2018 | Wildfire   |   10    |
+| Cyclone Idai         | 2019 | Cyclone    |   10    |
+| Canada Wildfires     | 2016 | Wildfire   |    8    |
+| Hurricane Dorian     | 2019 | Hurricane  |    9    |
+| Hurricane Florence   | 2018 | Hurricane  |    9    |
+| Hurricane Harvey     | 2017 | Hurricane  |    9    |
+| Hurricane Irma       | 2017 | Hurricane  |    9    |
+| Hurricane Maria      | 2017 | Hurricane  |    9    |
+| Kaikoura Earthquake  | 2016 | Earthquake |    9    |
+| Kerala Floods        | 2018 | Flood      |    9    |
 
 ### Humanitarian Categories
 
 Each tweet is classified into one of up to 10 humanitarian categories. **Not every disaster has all 10 classes** — some events have only 7, 8, or 9 classes depending on the types of tweets observed during that event:
 
-| ID | Category | Description |
-|---|---|---|
-| 0 | `caution_and_advice` | Warnings, safety tips, preparedness advice |
-| 1 | `displaced_people_and_evacuations` | Reports of evacuations, shelters, displacement |
-| 2 | `infrastructure_and_utility_damage` | Damage to buildings, roads, power, water |
-| 3 | `injured_or_dead_people` | Reports of casualties or injuries |
-| 4 | `missing_or_found_people` | Missing persons reports or reunifications |
-| 5 | `not_humanitarian` | Tweets not related to humanitarian response |
-| 6 | `other_relevant_information` | Relevant but not fitting other categories |
-| 7 | `requests_or_urgent_needs` | Requests for help, supplies, resources |
-| 8 | `rescue_volunteering_or_donation_effort` | Rescue operations, volunteer coordination, donations |
-| 9 | `sympathy_and_support` | Expressions of solidarity, prayers, emotional support |
+| ID  | Category                                 | Description                                           |
+| --- | ---------------------------------------- | ----------------------------------------------------- |
+| 0   | `caution_and_advice`                     | Warnings, safety tips, preparedness advice            |
+| 1   | `displaced_people_and_evacuations`       | Reports of evacuations, shelters, displacement        |
+| 2   | `infrastructure_and_utility_damage`      | Damage to buildings, roads, power, water              |
+| 3   | `injured_or_dead_people`                 | Reports of casualties or injuries                     |
+| 4   | `missing_or_found_people`                | Missing persons reports or reunifications             |
+| 5   | `not_humanitarian`                       | Tweets not related to humanitarian response           |
+| 6   | `other_relevant_information`             | Relevant but not fitting other categories             |
+| 7   | `requests_or_urgent_needs`               | Requests for help, supplies, resources                |
+| 8   | `rescue_volunteering_or_donation_effort` | Rescue operations, volunteer coordination, donations  |
+| 9   | `sympathy_and_support`                   | Expressions of solidarity, prayers, emotional support |
 
 For example, `canada_wildfires_2016` has only 8 classes (missing `injured_or_dead_people` and `missing_or_found_people`), while most other events have 9 classes (missing `missing_or_found_people`). The code dynamically detects the actual classes per disaster at runtime, ensuring the model only predicts classes that are present.
 
@@ -152,6 +156,7 @@ data/{disaster}/
 ```
 
 **Few-shot labeled splits** are created by sampling `k` examples per class from the full training pool:
+
 - **Sizes (`k`):** 5, 10, 25, 50 examples per class
 - **Sets (`s`):** 1, 2, 3 (three independent random samples for each size)
 
@@ -168,13 +173,13 @@ tweet_id	tweet_text	class_label
 
 **Example sizes** (california_wildfires_2018):
 
-| Split | Size |
-|---|---|
-| `labeled_5_set1.tsv` | 50 tweets (5 per class × 10 classes) |
-| `labeled_50_set1.tsv` | 500 tweets (50 per class × 10 classes) |
-| `unlabeled_5_set1.tsv` | ~5,100 tweets |
-| `{disaster}_dev.tsv` | ~750 tweets |
-| `{disaster}_test.tsv` | ~1,460 tweets |
+| Split                  | Size                                   |
+| ---------------------- | -------------------------------------- |
+| `labeled_5_set1.tsv`   | 50 tweets (5 per class × 10 classes)   |
+| `labeled_50_set1.tsv`  | 500 tweets (50 per class × 10 classes) |
+| `unlabeled_5_set1.tsv` | ~5,100 tweets                          |
+| `{disaster}_dev.tsv`   | ~750 tweets                            |
+| `{disaster}_test.tsv`  | ~1,460 tweets                          |
 
 ## Project Structure
 
@@ -207,17 +212,20 @@ tweet_id	tweet_text	class_label
 **`run_ust.py`** — Command-line interface. Parses all hyperparameters as arguments, loads the TSV data files into `CustomDataset_tracked` objects, and calls `train_model()`. Contains the default 10-class `label_to_id` mapping. Use this for individual runs from the terminal.
 
 **`ust.py`** — Core training engine.
+
 - `BertModel`: Wraps HuggingFace's `AutoModelForSequenceClassification` with an optional learned temperature scaling parameter `T` for post-hoc calibration.
 - `train_model()`: Orchestrates the full pipeline — base model selection, self-training loop, and test evaluation. Saves model checkpoints as `data/{disaster}/pytorch_model.bin` and results as JSON to `results/{disaster}/`.
 - `mc_dropout_evaluate()`: Runs `T` stochastic forward passes with dropout enabled at inference time, collecting prediction distributions for BALD-based uncertainty estimation.
 - `evaluate()`: Computes macro-F1 and ECE on a given dataset split.
 
 **`sampler.py`** — Implements the uncertainty-based sampling strategies:
+
 - `get_BALD_acquisition()`: Computes BALD scores from the `T` stochastic forward passes.
 - `sample_by_bald_class_easiness()`: The primary UST sampling function — selects pseudo-labels per class, preferring low-uncertainty (easy) examples, weighted by BALD-based easiness scores.
 - Other variants: `sample_by_bald_easiness()`, `sample_by_bald_difficulty()`, `sample_by_bald_class_difficulty()`.
 
 **`custom_dataset.py`** — PyTorch Dataset subclasses:
+
 - `CustomDataset`: Basic text/label pairs with tokenization. Supports `get_subset_dataset()` for sampling subsets.
 - `CustomDataset_tracked`: Extends `CustomDataset` with tweet ID tracking (`idxes`), used throughout the pseudo-labeling pipeline to maintain provenance of unlabeled instances.
 
@@ -271,19 +279,19 @@ PYTHONHASHSEED=42 python run_ust.py \
 
 Key arguments:
 
-| Argument | Default | Description |
-|---|---|---|
-| `--disaster` | (required) | Disaster directory name under `data/` |
-| `--train_file` | `S1T_5` | Labeled split name (e.g., `5_set1`, `10_set2`, `50_set3`) |
-| `--sample_scheme` | `easy_bald_class_conf` | Sampling strategy (`uniform` for standard ST) |
-| `--sup_epochs` | 18 | Max supervised epochs per training phase |
-| `--unsup_epochs` | 12 | Number of self-training iterations |
-| `--N_base` | 3 | Number of random initializations for base model |
-| `--T` | 7 | MC Dropout forward passes (unused for `uniform`) |
-| `--alpha` | 0.1 | Confidence loss weighting factor |
-| `--sample_size` | 1800 | Unlabeled instances sampled per iteration |
-| `--unsup_size` | 1000 | Pseudo-labeled instances kept per iteration |
-| `--pt_teacher_checkpoint` | `vinai/bertweet-base` | Pre-trained model checkpoint |
+| Argument                  | Default                | Description                                               |
+| ------------------------- | ---------------------- | --------------------------------------------------------- |
+| `--disaster`              | (required)             | Disaster directory name under `data/`                     |
+| `--train_file`            | `S1T_5`                | Labeled split name (e.g., `5_set1`, `10_set2`, `50_set3`) |
+| `--sample_scheme`         | `easy_bald_class_conf` | Sampling strategy (`uniform` for standard ST)             |
+| `--sup_epochs`            | 18                     | Max supervised epochs per training phase                  |
+| `--unsup_epochs`          | 12                     | Number of self-training iterations                        |
+| `--N_base`                | 3                      | Number of random initializations for base model           |
+| `--T`                     | 7                      | MC Dropout forward passes (unused for `uniform`)          |
+| `--alpha`                 | 0.1                    | Confidence loss weighting factor                          |
+| `--sample_size`           | 1800                   | Unlabeled instances sampled per iteration                 |
+| `--unsup_size`            | 1000                   | Pseudo-labeled instances kept per iteration               |
+| `--pt_teacher_checkpoint` | `vinai/bertweet-base`  | Pre-trained model checkpoint                              |
 
 ### Batch Experiments (Notebook)
 
@@ -317,21 +325,22 @@ Results are saved to disk after each experiment completes (`results/{disaster}/s
 ### Progress Tracking
 
 The experiment loop reports:
+
 - Per-experiment: disaster name, split, class count, F1 result, and elapsed time
 - Periodic summaries: percentage complete (by entries processed), elapsed time, and ETA
 
 ## Key Hyperparameters
 
-| Parameter | Default | Effect |
-|---|---|---|
-| `N_base` | 3 | More initializations → better base model, but slower startup |
-| `sup_epochs` | 18 | Max epochs per training phase (early stopping at patience=3) |
-| `unsup_epochs` | 12 | More ST iterations → more pseudo-label refinement |
-| `sample_size` | 1800 | Larger pool → more candidates for pseudo-labeling |
-| `unsup_size` | 1000 | More pseudo-labels per iteration → faster but noisier expansion |
-| `alpha` | 0.1 | Higher → pseudo-labels weighted more by confidence |
-| `T` | 7 | More MC passes → better uncertainty estimates (only for BALD schemes) |
-| `sample_scheme` | varies | `uniform` = baseline ST; `easy_bald_class_conf` = full UST |
+| Parameter       | Default | Effect                                                                |
+| --------------- | ------- | --------------------------------------------------------------------- |
+| `N_base`        | 3       | More initializations → better base model, but slower startup          |
+| `sup_epochs`    | 18      | Max epochs per training phase (early stopping at patience=3)          |
+| `unsup_epochs`  | 12      | More ST iterations → more pseudo-label refinement                     |
+| `sample_size`   | 1800    | Larger pool → more candidates for pseudo-labeling                     |
+| `unsup_size`    | 1000    | More pseudo-labels per iteration → faster but noisier expansion       |
+| `alpha`         | 0.1     | Higher → pseudo-labels weighted more by confidence                    |
+| `T`             | 7       | More MC passes → better uncertainty estimates (only for BALD schemes) |
+| `sample_scheme` | varies  | `uniform` = baseline ST; `easy_bald_class_conf` = full UST            |
 
 ## Results Format
 
@@ -339,13 +348,13 @@ Each experiment produces a JSON file at `results/{disaster}/st_uniform_{size}_se
 
 ```json
 {
-    "Temperature Scaling": false,
-    "Label Smoothing": 0.0,
-    "Best ST model": {
-        "F1 before temp scaling": "0.383",
-        "ECE before temp scaling": "tensor(0.4798, device='cuda:0')",
-        "T before temp scaling": "1.0"
-    }
+  "Temperature Scaling": false,
+  "Label Smoothing": 0.0,
+  "Best ST model": {
+    "F1 before temp scaling": "0.383",
+    "ECE before temp scaling": "tensor(0.4798, device='cuda:0')",
+    "T before temp scaling": "1.0"
+  }
 }
 ```
 
@@ -359,9 +368,9 @@ Model checkpoints are saved as `data/{disaster}/pytorch_model.bin` (overwritten 
 
 ## References
 
-- Gupta, K., Gautam, N., Sosea, T., Caragea, D., & Caragea, C. (2025). [Calibrated Semi-Supervised Models for Disaster Response based on Training Dynamics](https://doi.org/10.59297/5xkjq067). *Proceedings of the 22nd International ISCRAM Conference*, Halifax, Canada.
-- Sosea, T., & Caragea, C. (2022). [Leveraging Training Dynamics and Self-Training for Text Classification](https://aclanthology.org/2022.findings-emnlp.350/). *Findings of the Association for Computational Linguistics: EMNLP 2022*.
-- Li, H., Caragea, D., & Caragea, C. (2021). [Combining Self-training with Deep Learning for Disaster Tweet Classification](https://idl.iscram.org/files/hongminli/2021/2367_HongminLi_etal2021.pdf). *Proceedings of the 18th International ISCRAM Conference*.
-- Mukherjee, S., & Awadallah, A. (2020). [Uncertainty-aware Self-training for Few-shot Text Classification](https://arxiv.org/abs/2006.15315). *NeurIPS 2020*.
-- Alam, F., Qazi, U., Imran, M., & Ofli, F. (2021). [HumAID: Human-Annotated Disaster Incidents Data from Twitter with Deep Learning Benchmarks](https://ojs.aaai.org/index.php/ICWSM/article/view/18116). *ICWSM 2021*.
-- Nguyen, D. Q., Vu, T., & Nguyen, A. T. (2020). [BERTweet: A Pre-trained Language Model for English Tweets](https://aclanthology.org/2020.emnlp-demos.2/). *EMNLP 2020*.
+- Gupta, K., Gautam, N., Sosea, T., Caragea, D., & Caragea, C. (2025). [Calibrated Semi-Supervised Models for Disaster Response based on Training Dynamics](https://doi.org/10.59297/5xkjq067). _Proceedings of the 22nd International ISCRAM Conference_, Halifax, Canada.
+- Sosea, T., & Caragea, C. (2022). [Leveraging Training Dynamics and Self-Training for Text Classification](https://aclanthology.org/2022.findings-emnlp.350/). _Findings of the Association for Computational Linguistics: EMNLP 2022_.
+- Li, H., Caragea, D., & Caragea, C. (2021). [Combining Self-training with Deep Learning for Disaster Tweet Classification](https://idl.iscram.org/files/hongminli/2021/2367_HongminLi_etal2021.pdf). _Proceedings of the 18th International ISCRAM Conference_.
+- Mukherjee, S., & Awadallah, A. (2020). [Uncertainty-aware Self-training for Few-shot Text Classification](https://arxiv.org/abs/2006.15315). _NeurIPS 2020_.
+- Alam, F., Qazi, U., Imran, M., & Ofli, F. (2021). [HumAID: Human-Annotated Disaster Incidents Data from Twitter with Deep Learning Benchmarks](https://ojs.aaai.org/index.php/ICWSM/article/view/18116). _ICWSM 2021_.
+- Nguyen, D. Q., Vu, T., & Nguyen, A. T. (2020). [BERTweet: A Pre-trained Language Model for English Tweets](https://aclanthology.org/2020.emnlp-demos.2/). _EMNLP 2020_.
