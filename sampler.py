@@ -49,7 +49,7 @@ def sample_by_bald_easiness(tokenizer, X, y_mean, y_var, y, num_samples, num_cla
 
 
 def sample_by_bald_class_easiness(X_new_unlabeled_dataset, y_mean, y_var, y_pred, unsup_size, num_classes, y_T):
-	
+
 	logger.info ("Sampling by easy BALD acquisition function per class")
 
 	BALD_acq = get_BALD_acquisition(y_T)
@@ -57,36 +57,32 @@ def sample_by_bald_class_easiness(X_new_unlabeled_dataset, y_mean, y_var, y_pred
 	logger.info (BALD_acq)
 	samples_per_class = unsup_size // num_classes
 
-
-	indices = []
 	y_s = []
 	w_s = []
 	x_s = []
+	# Use positional indices (0..N-1) for array access, not tweet IDs
+	all_positions = np.arange(len(y_pred))
 	for label in range(num_classes):
-		y_ = y_pred[y_pred==label]
-		y_var_ = y_var[y_pred == label]
-		p_norm = BALD_acq[y_pred==label]
+		label_mask = (y_pred == label)
+		positions_for_label = all_positions[label_mask]
+		p_norm = BALD_acq[label_mask]
 		p_norm = np.maximum(np.zeros(len(p_norm)), p_norm)
-		p_norm = p_norm/np.sum(p_norm)
-		pool_of_idx = np.array(X_new_unlabeled_dataset.idxes)[y_pred == label]
-		if len(pool_of_idx) ==0:
+		if np.sum(p_norm) == 0:
 			continue
-		if len(pool_of_idx) < samples_per_class:
+		p_norm = p_norm/np.sum(p_norm)
+		if len(positions_for_label) == 0:
+			continue
+		if len(positions_for_label) < samples_per_class:
 			logger.info ("Sampling with replacement.")
 			replace = True
 		else:
 			replace = False
-		print("Pool of idx ", len(pool_of_idx))
-		indices = np.random.choice(pool_of_idx, samples_per_class, p=p_norm, replace=replace)
-		mapper = {}
-		crt = 0
-		for idx in indices:
-			mapper[idx] = crt
-			crt += 1
-		y_s.extend([label] * len(indices))
-		for elem in indices:
-			w_s.append(y_var[elem][label])
-		x_s.extend([X_new_unlabeled_dataset.text_list[i] for i in indices])
+		selected_positions = np.random.choice(len(positions_for_label), samples_per_class, p=p_norm, replace=replace)
+		actual_positions = positions_for_label[selected_positions]
+		y_s.extend([label] * len(actual_positions))
+		for pos in actual_positions:
+			w_s.append(y_var[pos][label])
+		x_s.extend([X_new_unlabeled_dataset.text_list[pos] for pos in actual_positions])
 		assert len(y_s) == len(w_s) and len(w_s) == len(x_s)
 
 	text_lists, labels, weights = shuffle(x_s, y_s, w_s)

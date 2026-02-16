@@ -99,7 +99,7 @@ def mc_dropout_evaluate(model_dir, n_classes, pt_teacher_checkpoint, X_new_unlab
             y_pred = []
             for elem in data_loader:
                 x = {key: elem[key].to(device)
-                for key in elem if key not in ['idx']}
+                for key in elem if key not in ['idx', 'weights']}
                 pred = model(
                 input_ids=x['input_ids'], token_type_ids=x['token_type_ids'], attention_mask=x['attention_mask'])
                 y_pred.extend(pred.logits.cpu().numpy())
@@ -118,7 +118,7 @@ def mc_dropout_evaluate(model_dir, n_classes, pt_teacher_checkpoint, X_new_unlab
 
     #compute variance
     y_var = np.var(y_T, axis=0)
-    assert y_var.shape == (len(X_new_unlabeled_dataset), 10)
+    assert y_var.shape == (len(X_new_unlabeled_dataset), n_classes)
 
     return y_mean, y_var, y_pred, y_T
 
@@ -310,7 +310,7 @@ def	train_model(ds_train, ds_dev, ds_test, ds_unlabeled, pt_teacher_checkpoint, 
             else:
                 X_new_unlabeled_dataset = CustomDataset(X_new_unlabeled_dataset.text_list, y_pred, X_new_unlabeled_dataset.tokenizer, labeled=True)
         else:
-            X_new_unlabeled_dataset = f_(X_new_unlabeled_dataset, y_mean, y_var, y_pred, unsup_size, 10, y_T=y_T)
+            X_new_unlabeled_dataset = f_(X_new_unlabeled_dataset, y_mean, y_var, y_pred, unsup_size, n_classes, y_T=y_T)
 
         if not conf:
             logger.info ("Not using confidence learning.")

@@ -21,9 +21,9 @@ logging.basicConfig(level = logging.INFO)
 GLOBAL_SEED = int(os.getenv("PYTHONHASHSEED"))
 logger.info ("Global seed {}".format(GLOBAL_SEED))
 
-# label map for disaster with 10 class 
-# adjust if using a different dataset with different classes
-label_to_id = {
+# Full 10-class humanitarian label mapping (superset)
+# Not every disaster has all 10 classes — detect_classes() builds the actual mapping
+FULL_LABEL_TO_ID = {
 	"caution_and_advice":0,
 	"displaced_people_and_evacuations":1,
 	"infrastructure_and_utility_damage":2,
@@ -33,10 +33,40 @@ label_to_id = {
 	"other_relevant_information":6,
 	"requests_or_urgent_needs":7,
 	"rescue_volunteering_or_donation_effort":8,
-	"sympathy_and_support":9, 
+	"sympathy_and_support":9,
 }
 
-def get_dataset(path, tokenizer, labeled=True):
+
+def detect_classes(disaster, train_file, data_dir="data"):
+	"""Detect the actual classes present in a disaster dataset.
+
+	Scans train, dev, and test TSV files to collect all unique class labels,
+	then builds a contiguous label-to-id mapping (0, 1, 2, ...).
+	"""
+	base = os.path.join(data_dir, disaster)
+	files = [
+		os.path.join(base, "labeled_" + train_file + ".tsv"),
+		os.path.join(base, disaster + "_dev.tsv"),
+		os.path.join(base, disaster + "_test.tsv"),
+	]
+	all_labels = set()
+	for f in files:
+		if os.path.exists(f):
+			df = pd.read_csv(f, sep='\t')
+			all_labels.update(df['class_label'].dropna().unique())
+
+	# Build a contiguous mapping, preserving the canonical order
+	label_to_id = {}
+	idx = 0
+	for label in FULL_LABEL_TO_ID:
+		if label in all_labels:
+			label_to_id[label] = idx
+			idx += 1
+
+	return label_to_id, len(label_to_id)
+
+
+def get_dataset(path, tokenizer, label_to_id, labeled=True):
 
     df = pd.read_csv(path, sep='\t')
     text_list = []
@@ -48,8 +78,8 @@ def get_dataset(path, tokenizer, labeled=True):
         text_list.append(row['tweet_text'])
         labels_list.append(label_to_id[row['class_label']])
         ids_list.append(row['tweet_id'])
-        
-    dataset = CustomDataset_tracked(text_list, labels_list, ids_list, tokenizer, labeled=labeled)       
+
+    dataset = CustomDataset_tracked(text_list, labels_list, ids_list, tokenizer, labeled=labeled)
     return dataset
 
 
@@ -124,15 +154,17 @@ if __name__ == '__main__':
 	cfg.attention_probs_dropout_prob = attention_probs_dropout_prob
 
 	tokenizer = AutoTokenizer.from_pretrained(pt_teacher_checkpoint)
-    
 
-	ds_train = get_dataset("data/" + disaster_name + "/labeled_" + train_file + ".tsv", tokenizer)
-	ds_dev = get_dataset("data/" + disaster_name + "/" + disaster_name + "_dev.tsv", tokenizer)
-	ds_test = get_dataset("data/" + disaster_name + "/" + disaster_name + "_test.tsv", tokenizer)
-	ds_unlabeled = get_dataset("data/" + disaster_name + "/unlabeled_" + train_file + ".tsv", tokenizer, False)
-     
+	# Detect actual classes for this disaster (not all have 10)
+	label_to_id, n_classes = detect_classes(disaster_name, train_file)
+	logger.info("Detected {} classes for {}: {}".format(n_classes, disaster_name, list(label_to_id.keys())))
+
+	ds_train = get_dataset("data/" + disaster_name + "/labeled_" + train_file + ".tsv", tokenizer, label_to_id)
+	ds_dev = get_dataset("data/" + disaster_name + "/" + disaster_name + "_dev.tsv", tokenizer, label_to_id)
+	ds_test = get_dataset("data/" + disaster_name + "/" + disaster_name + "_test.tsv", tokenizer, label_to_id)
+	ds_unlabeled = get_dataset("data/" + disaster_name + "/unlabeled_" + train_file + ".tsv", tokenizer, label_to_id, False)
 
 	train_model(ds_train, ds_dev, ds_test, ds_unlabeled, pt_teacher_checkpoint, cfg, model_dir, sup_batch_size=sup_batch_size, unsup_batch_size=unsup_batch_size, unsup_size=unsup_size, sample_size=sample_size,
 	            sample_scheme=sample_scheme, T=T, alpha=alpha, sup_epochs=sup_epochs, unsup_epochs=unsup_epochs, N_base=N_base, dense_dropout=dense_dropout, attention_probs_dropout_prob=attention_probs_dropout_prob, hidden_dropout_prob=hidden_dropout_prob,
-				results_file=results_file_name, temp_scaling = temp_scaling, ls=label_smoothing, n_classes=len(label_to_id.keys()))
+				results_file=results_file_name, temp_scaling=temp_scaling, ls=label_smoothing, n_classes=n_classes)
 
