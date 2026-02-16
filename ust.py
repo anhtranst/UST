@@ -31,7 +31,8 @@ from torch.multiprocessing import Pool, Process, set_start_method
 
 logger = logging.getLogger('UST')
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+if 'CUDA_VISIBLE_DEVICES' not in os.environ:
+    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #device = "cpu"
 print("The device is : ", device)
@@ -75,12 +76,12 @@ def create_learning_rate_scheduler(max_learn_rate=5e-5,
     return learning_rate_scheduler
 
 
-def mc_dropout_evaluate(model_dir, n_classes, pt_teacher_checkpoint, X_new_unlabeled_dataset, cfg, linear_dropout=0.5, T=30):
+def mc_dropout_evaluate(model_dir, n_classes, pt_teacher_checkpoint, X_new_unlabeled_dataset, cfg, linear_dropout=0.5, T=30, data_dir="data"):
 
     cfg.return_dict = True
 
     model = BertModel(pt_teacher_checkpoint, num_labels=n_classes)
-    state_dict = torch.load("data/" + model_dir + "/pytorch_model.bin")
+    state_dict = torch.load(os.path.join(data_dir, model_dir, "pytorch_model.bin"))
     model.load_state_dict(state_dict)
     model.to(device)
     model.train()
@@ -166,7 +167,7 @@ def evaluate(model, n_classes, test_dataloader, criterion, batch_size, temp_scal
 
 def	train_model(ds_train, ds_dev, ds_test, ds_unlabeled, pt_teacher_checkpoint, cfg, model_dir, sup_batch_size=16, unsup_batch_size=64, unsup_size=4096, sample_size=16384,
 	            sample_scheme='easy_bald_class_conf', T=30, alpha=0.1, sup_epochs=20, unsup_epochs=25, N_base=10, dense_dropout=0.5, attention_probs_dropout_prob=0.3, hidden_dropout_prob=0.3,
-                results_file="", results_dir="results", temp_scaling=False, ls=0.0, n_classes=10):
+                results_file="", results_dir="results", data_dir="data", temp_scaling=False, ls=0.0, n_classes=10):
 
     start_time = time.time()
     patience = 5
@@ -220,7 +221,7 @@ def	train_model(ds_train, ds_dev, ds_test, ds_unlabeled, pt_teacher_checkpoint, 
                     best_f1 = f1_macro_validation
                     if best_f1 > best_f1_overall:
                         #model.save_pretrained(model_dir+"/ust")
-                        torch.save(model.state_dict(), "data/" + model_dir + "/pytorch_model.bin")
+                        torch.save(model.state_dict(), os.path.join(data_dir, model_dir, "pytorch_model.bin"))
                         best_f1_overall = best_f1
                     print('New best macro validation', best_f1, 'Epoch', epoch)
                     continue
@@ -238,7 +239,7 @@ def	train_model(ds_train, ds_dev, ds_test, ds_unlabeled, pt_teacher_checkpoint, 
 
     best_model = BertModel(pt_teacher_checkpoint, num_labels=n_classes)
     best_model.to(device)
-    state_dict = torch.load("data/" + model_dir + "/pytorch_model.bin")
+    state_dict = torch.load(os.path.join(data_dir, model_dir, "pytorch_model.bin"))
     best_model.load_state_dict(state_dict)
 
     for epoch in range(unsup_epochs):
@@ -255,7 +256,7 @@ def	train_model(ds_train, ds_dev, ds_test, ds_unlabeled, pt_teacher_checkpoint, 
         if 'uni' in sample_scheme:
             y_mean, y_var, y_T = None, None, None
         elif 'bald' in sample_scheme:
-            y_mean, y_var, y_pred, y_T = mc_dropout_evaluate(model_dir, n_classes, pt_teacher_checkpoint, X_new_unlabeled_dataset, cfg, dense_dropout, T=T)
+            y_mean, y_var, y_pred, y_T = mc_dropout_evaluate(model_dir, n_classes, pt_teacher_checkpoint, X_new_unlabeled_dataset, cfg, dense_dropout, T=T, data_dir=data_dir)
         else:
             logger.info ("Error in specifying sample_scheme: One of the 'uni' or 'bald' schemes need to be specified")
             exit(0)
@@ -264,7 +265,7 @@ def	train_model(ds_train, ds_dev, ds_test, ds_unlabeled, pt_teacher_checkpoint, 
             copy_cfg.return_dict = True
             # model = AutoModelForSequenceClassification.from_pretrained(model_dir+"/ust", config=copy_cfg)
             model = BertModel(pt_teacher_checkpoint, num_labels=n_classes)
-            state_dict = torch.load("data/" + model_dir + "/pytorch_model.bin")
+            state_dict = torch.load(os.path.join(data_dir, model_dir, "pytorch_model.bin"))
             model.load_state_dict(state_dict)
             model.to(device)
             model.eval()
@@ -325,7 +326,7 @@ def	train_model(ds_train, ds_dev, ds_test, ds_unlabeled, pt_teacher_checkpoint, 
 
         model = BertModel(pt_teacher_checkpoint, num_labels=n_classes)
         model.to(device)
-        state_dict = torch.load("data/" + model_dir + "/pytorch_model.bin")
+        state_dict = torch.load(os.path.join(data_dir, model_dir, "pytorch_model.bin"))
         model.load_state_dict(state_dict)
         optimizer = torch.optim.Adam(model.parameters(), lr=5e-05)
         model.train()
@@ -375,7 +376,7 @@ def	train_model(ds_train, ds_dev, ds_test, ds_unlabeled, pt_teacher_checkpoint, 
                 best_f1 = f1_macro_validation
                 if best_f1 > best_f1_overall:
                     #model.save_pretrained(model_dir+"/ust")
-                    torch.save(model.state_dict(), "data/" + model_dir + "/pytorch_model.bin")
+                    torch.save(model.state_dict(), os.path.join(data_dir, model_dir, "pytorch_model.bin"))
                     best_f1_overall = best_f1
                 print('New best macro validation', best_f1, 'Epoch', epoch)
                 continue
@@ -391,7 +392,7 @@ def	train_model(ds_train, ds_dev, ds_test, ds_unlabeled, pt_teacher_checkpoint, 
     # model = AutoModelForSequenceClassification.from_pretrained(model_dir+"/ust", config=copy_cfg)
     model = BertModel(pt_teacher_checkpoint, num_labels=n_classes)
     model.to(device)
-    state_dict = torch.load("data/" + model_dir + "/pytorch_model.bin")
+    state_dict = torch.load(os.path.join(data_dir, model_dir, "pytorch_model.bin"))
     model.load_state_dict(state_dict)
 
     rel_file = model_dir + "-" + results_file

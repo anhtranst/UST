@@ -14,6 +14,8 @@ class CustomDataset(torch.utils.data.Dataset):
         tok = self.tokenizer(
             self.text_list[idx], padding='max_length', max_length=self.max_seq_len, truncation=True)
         item = {key: torch.tensor(tok[key]) for key in tok}
+        if 'token_type_ids' not in item:
+            item['token_type_ids'] = torch.zeros_like(item['input_ids'])
         if self.labeled == True:
             item['lbl'] = torch.tensor(self.labels[idx], dtype=torch.long)
         item['idx'] = self.idxes[idx]
@@ -47,6 +49,8 @@ class CustomDataset_tracked(torch.utils.data.Dataset):
         tok = self.tokenizer(
             self.text_list[idx], padding='max_length', max_length=self.max_seq_len, truncation=True)
         item = {key: torch.tensor(tok[key]) for key in tok}
+        if 'token_type_ids' not in item:
+            item['token_type_ids'] = torch.zeros_like(item['input_ids'])
         if self.labeled == True:
             item['lbl'] = torch.tensor(self.labels[idx], dtype=torch.long)
         item['idx'] = self.idxes[idx]
@@ -57,13 +61,8 @@ class CustomDataset_tracked(torch.utils.data.Dataset):
         return len(self.text_list)
 
 
-    def get_subset_dataset(self, idxs): 
-        text_lists, label_lists, id_lists = [], [], []
-        for text, label, id in zip(self.text_list, self.labels, self.idxes):
-            for i in idxs:
-                if i==id:
-                    text_lists.append(text)
-                    label_lists.append(label)
-                    id_lists.append(id)
-
+    def get_subset_dataset(self, idxs):
+        text_lists = [self.text_list[i] for i in idxs]
+        label_lists = [self.labels[i] for i in idxs] if self.labeled else None
+        id_lists = [self.idxes[i] for i in idxs]
         return CustomDataset_tracked(text_lists, label_lists, id_lists, self.tokenizer, self.max_seq_len, self.labeled)
