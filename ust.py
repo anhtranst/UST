@@ -109,7 +109,7 @@ def mc_dropout_evaluate(model_dir, n_classes, pt_teacher_checkpoint, X_new_unlab
 
     #compute mean
     y_mean = np.mean(y_T, axis=0)
-    assert y_mean.shape == (len(X_new_unlabeled_dataset), 10)
+    assert y_mean.shape == (len(X_new_unlabeled_dataset), n_classes)
 
     #compute majority prediction
     y_pred = np.array([np.argmax(np.bincount(row)) for row in np.transpose(np.argmax(y_T, axis=-1))])
@@ -166,7 +166,7 @@ def evaluate(model, n_classes, test_dataloader, criterion, batch_size, temp_scal
 
 def	train_model(ds_train, ds_dev, ds_test, ds_unlabeled, pt_teacher_checkpoint, cfg, model_dir, sup_batch_size=16, unsup_batch_size=64, unsup_size=4096, sample_size=16384,
 	            sample_scheme='easy_bald_class_conf', T=30, alpha=0.1, sup_epochs=20, unsup_epochs=25, N_base=10, dense_dropout=0.5, attention_probs_dropout_prob=0.3, hidden_dropout_prob=0.3,
-                results_file="", temp_scaling=False, ls=0.0, n_classes=10):
+                results_file="", results_dir="results", temp_scaling=False, ls=0.0, n_classes=10):
 
     start_time = time.time()
     patience = 5
@@ -182,7 +182,7 @@ def	train_model(ds_train, ds_dev, ds_test, ds_unlabeled, pt_teacher_checkpoint, 
     test_dataloader = torch.utils.data.DataLoader(
         ds_test, batch_size=128, shuffle=False)
     
-    cfg.num_labels = 10
+    cfg.num_labels = n_classes
     copy_cfg = deepcopy(cfg)
     copy_cfg.attention_probs_dropout_prob = 0.1
     copy_cfg.hidden_dropout_prob = 0.1
@@ -432,7 +432,9 @@ def	train_model(ds_train, ds_dev, ds_test, ds_unlabeled, pt_teacher_checkpoint, 
         logger_dict["Best ST model"]["T  after temp scaling"] = str(model.T.detach().cpu().numpy()[0])
 
     print(json.dumps(logger_dict, indent=4))
-    with open("data/" + model_dir +"/"+ results_file + '.txt','w') as fp:
+    results_out_dir = os.path.join(results_dir, model_dir)
+    os.makedirs(results_out_dir, exist_ok=True)
+    with open(os.path.join(results_out_dir, results_file + '.txt'), 'w') as fp:
         fp.write(json.dumps(logger_dict, indent=4))
 
 

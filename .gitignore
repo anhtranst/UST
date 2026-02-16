@@ -10,9 +10,11 @@ dist/
 build/
 *.egg
 
-# Model checkpoints and results
+# Model checkpoints
 data/*/pytorch_model.bin
-data/*/*.txt
+
+# Experiment results
+results/
 
 # Jupyter notebooks
 .ipynb_checkpoints/
