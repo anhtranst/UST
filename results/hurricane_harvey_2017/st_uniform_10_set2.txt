@@ -1,0 +1,9 @@
+{
+    "Temperature Scaling": false,
+    "Label Smoothing": 0.0,
+    "Best ST model": {
+        "F1 before temp scaling": "0.5483504783278064",
+        "ECE before temp scaling": "tensor(0.3271, device='cuda:0')",
+        "T before temp scaling": "1.0"
+    }
+}

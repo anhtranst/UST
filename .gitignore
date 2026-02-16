@@ -13,8 +13,7 @@ build/
 # Model checkpoints
 data/*/pytorch_model.bin
 
-# Experiment results
-results/
+# Experiment results (allow results/ to be tracked)
 
 # Jupyter notebooks
 .ipynb_checkpoints/

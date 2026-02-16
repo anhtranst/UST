@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ST Experiments Dashboard</title>
+  <style>
+    :root {
+      --bg: #f8f9fa;
+      --surface: #ffffff;
+      --border: #dee2e6;
+      --header-bg: #1a1a2e;
+      --header-fg: #ffffff;
+      --accent: #4361ee;
+      --accent-light: #e8ecfd;
+      --text: #212529;
+      --muted: #6c757d;
+      --good: #2d6a4f;
+      --good-bg: #d8f3dc;
+      --bad: #9b1d20;
+      --bad-bg: #fde8e8;
+      --mid: #7b4f12;
+      --mid-bg: #fff3cd;
+      --pending: #555;
+      --pending-bg: #e9ecef;
+      --shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    header {
+      background: var(--header-bg);
+      color: var(--header-fg);
+      padding: 24px 32px;
+    }
+    header h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 4px; }
+    header p { font-size: 0.9rem; opacity: 0.75; }
+
+    .container { max-width: 1400px; margin: 0 auto; padding: 24px 32px; }
+
+    /* ── Stats bar ── */
+    .stats-bar {
+      display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 28px;
+    }
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 16px 24px; flex: 1; min-width: 160px;
+      box-shadow: var(--shadow);
+    }
+    .stat-card .label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .stat-card .value { font-size: 1.75rem; font-weight: 700; color: var(--accent); margin-top: 2px; }
+    .stat-card .sub   { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+
+    /* ── Controls ── */
+    .controls {
+      display: flex; gap: 12px; flex-wrap: wrap; align-items: center;
+      margin-bottom: 20px;
+    }
+    .controls label { font-size: 0.85rem; color: var(--muted); }
+    .controls select, .controls input {
+      border: 1px solid var(--border); border-radius: 6px;
+      padding: 6px 10px; font-size: 0.85rem; background: var(--surface);
+    }
+    .tab-bar { display: flex; gap: 4px; margin-bottom: 20px; }
+    .tab-btn {
+      padding: 8px 18px; border-radius: 6px; border: 1px solid var(--border);
+      background: var(--surface); cursor: pointer; font-size: 0.875rem;
+      transition: all 0.15s;
+    }
+    .tab-btn.active {
+      background: var(--accent); color: #fff; border-color: var(--accent);
+    }
+
+    /* ── Tables ── */
+    .table-wrap { overflow-x: auto; border-radius: 8px; box-shadow: var(--shadow); }
+    table {
+      width: 100%; border-collapse: collapse;
+      background: var(--surface); font-size: 0.85rem;
+    }
+    th {
+      background: var(--header-bg); color: var(--header-fg);
+      padding: 10px 12px; text-align: left; white-space: nowrap;
+      font-weight: 600; font-size: 0.8rem;
+    }
+    th.num, td.num { text-align: right; }
+    td { padding: 9px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--accent-light); }
+    tbody tr.summary-row td {
+      background: #f0f4ff; font-weight: 700; border-top: 2px solid var(--accent);
+    }
+
+    /* ── Cell colouring ── */
+    .cell-val {
+      display: inline-block; padding: 2px 8px; border-radius: 4px;
+      font-weight: 600; font-variant-numeric: tabular-nums;
+    }
+    .cell-pending {
+      color: var(--pending); background: var(--pending-bg);
+      font-style: italic; font-size: 0.8rem; padding: 2px 6px; border-radius: 4px;
+    }
+
+    /* ── Pivot grid ── */
+    .pivot-section { margin-bottom: 36px; }
+    .pivot-section h2 { font-size: 1rem; font-weight: 700; margin-bottom: 12px; color: var(--text); }
+    .pivot-grid { display: grid; gap: 24px; }
+
+    /* ── Legend ── */
+    .legend {
+      font-size: 0.78rem; color: var(--muted); margin-bottom: 16px;
+      display: flex; gap: 16px; flex-wrap: wrap;
+    }
+    .legend span { display: inline-flex; align-items: center; gap: 5px; }
+    .legend-dot {
+      width: 10px; height: 10px; border-radius: 2px; display: inline-block;
+    }
+
+    .section-title {
+      font-size: 1.1rem; font-weight: 700; margin-bottom: 16px;
+      padding-bottom: 8px; border-bottom: 2px solid var(--border);
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>ST Experiments — Results Dashboard</h1>
+  <p>Self-Training (uniform) · BERTweet · HumAID dataset · 10 disasters × 12 splits</p>
+</header>
+
+<div class="container">
+
+  <!-- Stats bar -->
+  <div class="stats-bar" id="statsBar"></div>
+
+  <!-- Tabs -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="showTab('pivot', this)">Pivot Summary</button>
+    <button class="tab-btn"        onclick="showTab('detail', this)">All Results</button>
+  </div>
+
+  <!-- ── PIVOT TAB ── -->
+  <div id="tab-pivot">
+    <div class="legend">
+      <span><span class="legend-dot" style="background:#2d6a4f"></span> High F1 / Low ECE</span>
+      <span><span class="legend-dot" style="background:#9b1d20"></span> Low F1 / High ECE</span>
+      <span><span class="legend-dot" style="background:#e9ecef;border:1px solid #ccc"></span> Pending</span>
+      <p style="margin-left:auto;color:#888;font-size:0.78rem">Values = mean ± std over 3 sets</p>
+    </div>
+
+    <div class="pivot-section">
+      <div class="section-title">Macro-F1 by Disaster × Label Size</div>
+      <div class="table-wrap"><table id="pivotF1"></table></div>
+    </div>
+
+    <div class="pivot-section" style="margin-top:32px">
+      <div class="section-title">ECE by Disaster × Label Size</div>
+      <div class="table-wrap"><table id="pivotECE"></table></div>
+    </div>
+  </div>
+
+  <!-- ── DETAIL TAB ── -->
+  <div id="tab-detail" class="hidden">
+    <div class="controls">
+      <label>Disaster:</label>
+      <select id="filterDisaster" onchange="renderDetail()">
+        <option value="">All</option>
+      </select>
+      <label>Size:</label>
+      <select id="filterSize" onchange="renderDetail()">
+        <option value="">All</option>
+        <option>5</option><option>10</option><option>25</option><option>50</option>
+      </select>
+      <label>Sort by:</label>
+      <select id="sortBy" onchange="renderDetail()">
+        <option value="disaster">Disaster</option>
+        <option value="f1_desc">F1 ↓</option>
+        <option value="f1_asc">F1 ↑</option>
+        <option value="ece_asc">ECE ↑</option>
+      </select>
+    </div>
+    <div class="table-wrap"><table id="detailTable"></table></div>
+  </div>
+
+</div>
+
+<script>
+// ────────────────────────────────────────────────────
+// DATA — injected by build script or loaded at runtime
+// ────────────────────────────────────────────────────
+const RESULTS = __RESULTS_JSON__;
+
+const DISASTERS = [
+  "california_wildfires_2018",
+  "canada_wildfires_2016",
+  "cyclone_idai_2019",
+  "hurricane_dorian_2019",
+  "hurricane_florence_2018",
+  "hurricane_harvey_2017",
+  "hurricane_irma_2017",
+  "hurricane_maria_2017",
+  "kaikoura_earthquake_2016",
+  "kerala_floods_2018"
+];
+const SIZES  = [5, 10, 25, 50];
+const SETS   = [1, 2, 3];
+
+// ── helpers ──────────────────────────────────────────
+function fmt(v, digits=4) {
+  return (v === null || v === undefined || isNaN(v)) ? null : v.toFixed(digits);
+}
+function mean(arr) {
+  const v = arr.filter(x => x !== null);
+  return v.length ? v.reduce((a,b)=>a+b,0)/v.length : null;
+}
+function std(arr) {
+  const v = arr.filter(x => x !== null);
+  if (v.length < 2) return 0;
+  const m = mean(v);
+  return Math.sqrt(v.map(x=>(x-m)**2).reduce((a,b)=>a+b,0)/(v.length-1));
+}
+
+// Colour a value on a scale [lo, hi] — green=good, red=bad
+function heatF1(v, lo=0.3, hi=0.8) {
+  if (v === null) return '#e9ecef';
+  const t = Math.max(0, Math.min(1, (v-lo)/(hi-lo)));
+  // green at t=1, red at t=0
+  const r = Math.round(155 + (45-155)*t);
+  const g = Math.round(29  + (106-29)*t);
+  const b = Math.round(32  + (79-32)*t);
+  return `rgba(${r},${g},${b},0.18)`;
+}
+function heatECE(v, lo=0.05, hi=0.55) {
+  if (v === null) return '#e9ecef';
+  const t = Math.max(0, Math.min(1, (v-lo)/(hi-lo))); // high ECE = bad
+  const r = Math.round(45  + (155-45)*t);
+  const g = Math.round(106 + (29-106)*t);
+  const b = Math.round(79  + (32-79)*t);
+  return `rgba(${r},${g},${b},0.18)`;
+}
+
+function prettyDisaster(d) {
+  return d.replace(/_/g,' ')
+          .replace(/\b(\w)/g, c=>c.toUpperCase())
+          .replace(/(\d{4})/, ' $1');
+}
+
+// ── stats bar ────────────────────────────────────────
+function renderStats() {
+  const total = DISASTERS.length * SIZES.length * SETS.length;
+  const done  = Object.keys(RESULTS).length;
+  const f1s   = Object.values(RESULTS).map(r=>r.f1).filter(x=>x!==null);
+  const eces  = Object.values(RESULTS).map(r=>r.ece).filter(x=>x!==null);
+  const avgF1 = f1s.length ? mean(f1s) : null;
+  const avgECE= eces.length ? mean(eces) : null;
+  const pct   = Math.round(done/total*100);
+
+  document.getElementById('statsBar').innerHTML = `
+    <div class="stat-card">
+      <div class="label">Experiments</div>
+      <div class="value">${done} / ${total}</div>
+      <div class="sub">${pct}% complete</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Avg Macro-F1</div>
+      <div class="value">${avgF1 !== null ? avgF1.toFixed(3) : '—'}</div>
+      <div class="sub">across ${f1s.length} completed runs</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Avg ECE</div>
+      <div class="value">${avgECE !== null ? avgECE.toFixed(3) : '—'}</div>
+      <div class="sub">lower is better</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Disasters</div>
+      <div class="value">${DISASTERS.length}</div>
+      <div class="sub">× 4 sizes × 3 sets</div>
+    </div>
+  `;
+}
+
+// ── pivot table ──────────────────────────────────────
+function buildPivotTable(tableId, metric, heatFn, isECE=false) {
+  const tbl = document.getElementById(tableId);
+
+  // header
+  let html = '<thead><tr><th>Disaster</th><th>Classes</th>';
+  SIZES.forEach(s => html += `<th class="num">${s} / class</th>`);
+  html += '<th class="num">Mean</th></tr></thead><tbody>';
+
+  const disasterMeans = [];
+
+  DISASTERS.forEach(d => {
+    html += `<tr><td><strong>${prettyDisaster(d)}</strong></td>`;
+
+    // detect n_classes from results
+    let nc = '—';
+    for (const s of SETS) {
+      const k = `${d}__5_set${s}`;
+      if (RESULTS[k] && RESULTS[k].n_classes) { nc = RESULTS[k].n_classes; break; }
+    }
+    html += `<td class="num">${nc}</td>`;
+
+    const rowVals = [];
+    SIZES.forEach(sz => {
+      const vals = SETS.map(s => {
+        const k = `${d}__${sz}_set${s}`;
+        return RESULTS[k] ? RESULTS[k][metric] : null;
+      });
+      const m = mean(vals);
+      const sd = std(vals);
+      rowVals.push(m);
+      const bg = heatFn(m);
+      if (m === null) {
+        html += `<td class="num"><span class="cell-pending">pending</span></td>`;
+      } else {
+        const sdStr = sd > 0 ? ` <span style="color:#888;font-weight:400">±${sd.toFixed(3)}</span>` : '';
+        html += `<td class="num" style="background:${bg}"><span class="cell-val">${m.toFixed(3)}${sdStr}</span></td>`;
+      }
+    });
+
+    const rowMean = mean(rowVals);
+    disasterMeans.push(rowMean);
+    const bgM = heatFn(rowMean);
+    html += rowMean !== null
+      ? `<td class="num" style="background:${bgM}"><strong>${rowMean.toFixed(3)}</strong></td>`
+      : `<td class="num"><span class="cell-pending">—</span></td>`;
+    html += '</tr>';
+  });
+
+  // overall mean row
+  html += '<tr class="summary-row"><td colspan="2">Mean (all disasters)</td>';
+  const colMeans = SIZES.map(sz => {
+    const vals = DISASTERS.flatMap(d => SETS.map(s => {
+      const k = `${d}__${sz}_set${s}`;
+      return RESULTS[k] ? RESULTS[k][metric] : null;
+    }));
+    return mean(vals);
+  });
+  colMeans.forEach(m => {
+    html += m !== null
+      ? `<td class="num">${m.toFixed(3)}</td>`
+      : `<td class="num">—</td>`;
+  });
+  const grandMean = mean(colMeans);
+  html += `<td class="num">${grandMean !== null ? grandMean.toFixed(3) : '—'}</td>`;
+  html += '</tr></tbody>';
+
+  tbl.innerHTML = html;
+}
+
+// ── detail table ─────────────────────────────────────
+function renderDetail() {
+  const dFilter = document.getElementById('filterDisaster').value;
+  const sFilter = document.getElementById('filterSize').value;
+  const sortBy  = document.getElementById('sortBy').value;
+
+  let rows = [];
+  DISASTERS.forEach(d => {
+    SIZES.forEach(sz => {
+      SETS.forEach(s => {
+        const k = `${d}__${sz}_set${s}`;
+        const r = RESULTS[k] || {};
+        rows.push({
+          disaster: d, size: sz, set: s,
+          f1: r.f1 ?? null, ece: r.ece ?? null,
+          n_classes: r.n_classes ?? '—',
+          done: !!r.f1
+        });
+      });
+    });
+  });
+
+  if (dFilter) rows = rows.filter(r => r.disaster === dFilter);
+  if (sFilter) rows = rows.filter(r => r.size == sFilter);
+
+  if (sortBy === 'f1_desc') rows.sort((a,b) => (b.f1??-1) - (a.f1??-1));
+  else if (sortBy === 'f1_asc')  rows.sort((a,b) => (a.f1??99) - (b.f1??99));
+  else if (sortBy === 'ece_asc') rows.sort((a,b) => (a.ece??99) - (b.ece??99));
+  else rows.sort((a,b) => a.disaster.localeCompare(b.disaster) || a.size-b.size || a.set-b.set);
+
+  let html = `<thead><tr>
+    <th>Disaster</th>
+    <th class="num">Classes</th>
+    <th class="num">Size / class</th>
+    <th class="num">Set</th>
+    <th class="num">Macro-F1</th>
+    <th class="num">ECE</th>
+  </tr></thead><tbody>`;
+
+  rows.forEach(r => {
+    const f1bg  = r.f1  !== null ? heatF1(r.f1)   : '';
+    const ecebg = r.ece !== null ? heatECE(r.ece)  : '';
+    html += `<tr>
+      <td>${prettyDisaster(r.disaster)}</td>
+      <td class="num">${r.n_classes}</td>
+      <td class="num">${r.size}</td>
+      <td class="num">${r.set}</td>
+      <td class="num" style="background:${f1bg}">
+        ${r.f1 !== null ? `<span class="cell-val">${r.f1.toFixed(4)}</span>` : '<span class="cell-pending">pending</span>'}
+      </td>
+      <td class="num" style="background:${ecebg}">
+        ${r.ece !== null ? `<span class="cell-val">${r.ece.toFixed(4)}</span>` : '<span class="cell-pending">pending</span>'}
+      </td>
+    </tr>`;
+  });
+  html += '</tbody>';
+  document.getElementById('detailTable').innerHTML = html;
+}
+
+// ── tabs ─────────────────────────────────────────────
+function showTab(name, btn) {
+  document.getElementById('tab-pivot').classList.toggle('hidden', name !== 'pivot');
+  document.getElementById('tab-detail').classList.toggle('hidden', name !== 'detail');
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// ── populate disaster filter ──────────────────────────
+function populateFilters() {
+  const sel = document.getElementById('filterDisaster');
+  DISASTERS.forEach(d => {
+    const o = document.createElement('option');
+    o.value = d; o.textContent = prettyDisaster(d);
+    sel.appendChild(o);
+  });
+}
+
+// ── init ─────────────────────────────────────────────
+populateFilters();
+renderStats();
+buildPivotTable('pivotF1',  'f1',  heatF1);
+buildPivotTable('pivotECE', 'ece', heatECE, true);
+renderDetail();
+</script>
+</body>
+</html>
